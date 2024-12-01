@@ -1,6 +1,12 @@
 import Image from "next/image";
 import { MapPin } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { useEffect, useRef } from "react";
+import mapboxgl from "mapbox-gl";
+import "mapbox-gl/dist/mapbox-gl.css";
+
+// Initialize mapbox with access token
+mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN!;
 
 interface BusinessConfirmationCardProps {
   business: {
@@ -18,6 +24,33 @@ interface BusinessConfirmationCardProps {
 export default function BusinessConfirmationCard({
   business,
 }: BusinessConfirmationCardProps) {
+  const mapContainer = useRef<HTMLDivElement>(null);
+  const map = useRef<mapboxgl.Map | null>(null);
+  const marker = useRef<mapboxgl.Marker | null>(null);
+
+  useEffect(() => {
+    if (!mapContainer.current) return;
+
+    // Initialize map
+    map.current = new mapboxgl.Map({
+      container: mapContainer.current,
+      style: "mapbox://styles/mapbox/streets-v12",
+      center: [business.longitude, business.latitude],
+      zoom: 15,
+    });
+
+    // Add marker
+    marker.current = new mapboxgl.Marker()
+      .setLngLat([business.longitude, business.latitude])
+      .addTo(map.current);
+
+    // Cleanup
+    return () => {
+      marker.current?.remove();
+      map.current?.remove();
+    };
+  }, [business.latitude, business.longitude]);
+
   return (
     <Card className="w-full">
       <CardContent className="p-6">
@@ -43,11 +76,8 @@ export default function BusinessConfirmationCard({
             </div>
           </div>
         </div>
-        <div className="mt-4 w-full h-[200px] rounded-lg overflow-hidden bg-muted">
-          {/* Add your map component here */}
-          <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-            Map placeholder
-          </div>
+        <div className="mt-4 w-full h-[200px] rounded-lg overflow-hidden">
+          <div ref={mapContainer} className="w-full h-full" />
         </div>
       </CardContent>
     </Card>

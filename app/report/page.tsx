@@ -170,7 +170,7 @@ export default function ReportPage() {
             control={form.control}
             name="country"
             render={({ field }) => (
-              <FormItem className="mb-12">
+              <FormItem>
                 <FormLabel>Country</FormLabel>
                 <Select
                   onValueChange={field.onChange}
