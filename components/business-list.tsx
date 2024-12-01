@@ -1,13 +1,13 @@
-"use client"
+"use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Database } from "@/lib/supabase/types"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Database } from "@/lib/supabase/types";
 
-type BusinessReport = Database["public"]["Tables"]["business_reports"]["Row"]
+type BusinessReport = Database["public"]["Tables"]["business_reports"]["Row"];
 
 interface BusinessListProps {
-  reports: BusinessReport[]
+  reports: BusinessReport[];
 }
 
 export function BusinessList({ reports }: BusinessListProps) {
@@ -19,14 +19,15 @@ export function BusinessList({ reports }: BusinessListProps) {
       service_charge: "bg-purple-100 text-purple-800",
       tip_pooling: "bg-yellow-100 text-yellow-800",
       other: "bg-red-100 text-red-800",
-    }
-    return colors[practice] || colors.other
-  }
+    };
+    return colors[practice] || colors.other;
+  };
 
   return (
-    <div className="space-y-4">
+    <div className="divide-y">
       {reports.map((report) => (
-        <Card key={report.id}>
+        <div key={report.id} className="p-4 hover:bg-muted/50">
+          <h3 className="font-medium">{report.business_name}</h3>
           <CardHeader>
             <div className="flex justify-between items-start">
               <CardTitle className="text-xl">{report.business_name}</CardTitle>
@@ -39,12 +40,10 @@ export function BusinessList({ reports }: BusinessListProps) {
             <p className="text-sm text-muted-foreground">
               {report.address}, {report.city}, {report.state} {report.zip_code}
             </p>
-            {report.details && (
-              <p className="mt-2 text-sm">{report.details}</p>
-            )}
+            {report.details && <p className="mt-2 text-sm">{report.details}</p>}
           </CardContent>
-        </Card>
+        </div>
       ))}
     </div>
-  )
+  );
 }

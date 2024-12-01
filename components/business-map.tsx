@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Map, { Marker, Popup, NavigationControl } from "react-map-gl";
+import type { MapRef } from "react-map-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { Database } from "@/lib/supabase/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,12 +14,14 @@ type BusinessReport = Database["public"]["Tables"]["business_reports"]["Row"];
 
 interface BusinessMapProps {
   reports: BusinessReport[];
+  center?: { lat: number; lng: number };
 }
 
-export function BusinessMap({ reports }: BusinessMapProps) {
+export function BusinessMap({ reports, center }: BusinessMapProps) {
   const [selectedReport, setSelectedReport] = useState<BusinessReport | null>(
     null
   );
+  const mapRef = useRef<MapRef>(null);
   const [viewport, setViewport] = useState({
     latitude: 40.7128,
     longitude: -74.006,
@@ -80,8 +83,18 @@ export function BusinessMap({ reports }: BusinessMapProps) {
     }
   };
 
+  useEffect(() => {
+    if (center && mapRef.current) {
+      mapRef.current.flyTo({
+        center: [center.lng, center.lat],
+        duration: 2000,
+      });
+    }
+  }, [center]);
+
   return (
     <Map
+      ref={mapRef}
       {...viewport}
       onMove={(evt) => setViewport(evt.viewState)}
       style={{ width: "100%", height: "100%", position: "relative" }}
