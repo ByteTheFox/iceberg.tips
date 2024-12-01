@@ -7,20 +7,24 @@ import Link from "next/link";
 import { BusinessList } from "@/components/business-list";
 import { BusinessMap } from "@/components/business-map";
 import { createClient } from "@/lib/supabase/client";
-import { type BusinessReport } from "@/lib/types";
+import { type Tables } from "@/lib/types";
 import { Input } from "@/components/ui/input";
 import { EmptySearch } from "@/components/ui/empty-search";
 import { useGeolocation } from "@/hooks/use-geolocation";
 
 export default function Home() {
-  const [reports, setReports] = useState<BusinessReport[]>([]);
+  const [reports, setReports] = useState<
+    (Tables<"reports"> & { business: Tables<"businesses"> | null })[]
+  >([]);
   const [searchTerm, setSearchTerm] = useState("");
   const { latitude, longitude, loading: locationLoading } = useGeolocation();
   const supabase = createClient();
 
   useEffect(() => {
     const fetchReports = async () => {
-      const { data, error } = await supabase.from("reports").select("*");
+      const { data, error } = await supabase
+        .from("reports")
+        .select("*, business:businesses(*)");
       if (!error && data) {
         setReports(data);
       }
@@ -29,7 +33,7 @@ export default function Home() {
   }, []);
 
   const filteredReports = reports.filter((report) =>
-    report.business_name.toLowerCase().includes(searchTerm.toLowerCase())
+    report.business?.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
