@@ -19,9 +19,7 @@ export default function Home() {
 
   useEffect(() => {
     const fetchReports = async () => {
-      const { data, error } = await supabase
-        .from("business_reports")
-        .select("*");
+      const { data, error } = await supabase.from("reports").select("*");
       if (!error && data) {
         setReports(data);
       }

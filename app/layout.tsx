@@ -12,8 +12,8 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Tip Transparency",
-  description: "Report and view business tip practices",
+  title: "Iceberg",
+  description: "Find and report businesses tip practices",
   metadataBase: new URL("https://iceberg.tips"),
 };
 
