@@ -161,6 +161,8 @@ export default function ReportPage() {
     setOpen(false);
   };
 
+  const formValues = form.watch();
+
   return (
     <div className="max-w-2xl mx-auto p-4 sm:p-6 lg:p-8">
       <h1 className="text-2xl font-bold mb-12">Report Business Tip Practice</h1>
@@ -351,6 +353,13 @@ export default function ReportPage() {
           </Button>
         </form>
       </Form>
+
+      <div className="mt-8 p-4 bg-gray-100 rounded-lg">
+        <h2 className="text-sm font-semibold mb-2">Form Values (Debug):</h2>
+        <pre className="text-xs overflow-auto">
+          {JSON.stringify(formValues, null, 2)}
+        </pre>
+      </div>
     </div>
   );
 }
