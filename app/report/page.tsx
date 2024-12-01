@@ -96,8 +96,6 @@ export default function ReportPage() {
   const [tipPercentages, setTipPercentages] = useState<number[]>([]);
   const [tipPercentagesModified, setTipPercentagesModified] = useState(false);
 
-  const { user } = useUser();
-
   useEffect(() => {
     const businessName = form.watch("businessName");
     const country = form.watch("country");
