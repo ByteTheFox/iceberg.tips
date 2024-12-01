@@ -2,7 +2,7 @@ This is an application that allows people to report a business's tip practices.
 
 # Technologies
 - Next.js (15)
-- Tailwind CSS
+- Tailwind CSS (always use the existing tailwind.config.ts file for configuration)
 - Radix UI
 - Supabase
 - Stripe
