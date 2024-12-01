@@ -4,13 +4,15 @@ import { useEffect, useRef, useState } from "react";
 import Map, { Marker, Popup, NavigationControl } from "react-map-gl";
 import type { MapRef } from "react-map-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
-import { Database } from "@/lib/supabase/types";
+import { Tables } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
-type BusinessReport = Database["public"]["Tables"]["business_reports"]["Row"];
+type BusinessReport = Tables<"reports"> & {
+  business: Tables<"businesses"> | null;
+};
 
 interface BusinessMapProps {
   reports: BusinessReport[];
@@ -120,8 +122,8 @@ export function BusinessMap({ reports, center }: BusinessMapProps) {
       {reports.map((report) => (
         <Marker
           key={report.id}
-          latitude={report.latitude}
-          longitude={report.longitude}
+          latitude={report.business?.latitude || 0}
+          longitude={report.business?.longitude || 0}
           onClick={(e) => {
             e.originalEvent.stopPropagation();
             setSelectedReport(report);
@@ -137,8 +139,8 @@ export function BusinessMap({ reports, center }: BusinessMapProps) {
 
       {selectedReport && (
         <Popup
-          latitude={selectedReport.latitude}
-          longitude={selectedReport.longitude}
+          latitude={selectedReport.business?.latitude || 0}
+          longitude={selectedReport.business?.longitude || 0}
           onClose={() => setSelectedReport(null)}
           closeButton={true}
           closeOnClick={false}
@@ -148,12 +150,13 @@ export function BusinessMap({ reports, center }: BusinessMapProps) {
           <Card className="border-0 shadow-none">
             <CardHeader className="px-0 pt-0">
               <CardTitle className="text-sm">
-                {selectedReport.business_name}
+                {selectedReport.business?.name}
               </CardTitle>
             </CardHeader>
             <CardContent className="px-0 pb-0">
               <p className="text-xs text-muted-foreground mb-2">
-                {selectedReport.address}, {selectedReport.city}
+                {selectedReport.business?.address},{" "}
+                {selectedReport.business?.city}
               </p>
               <Badge variant="outline">
                 {selectedReport.tip_practice.replace("_", " ").toUpperCase()}

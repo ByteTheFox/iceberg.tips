@@ -12,12 +12,12 @@ export async function middleware(request: NextRequest) {
 
   // Optional: Check auth state
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+  } = await supabase.auth.getUser();
 
   // You can also add protected routes here
   const protectedRoutes = ["/report"];
-  if (!session && protectedRoutes.includes(request.nextUrl.pathname)) {
+  if (!user && protectedRoutes.includes(request.nextUrl.pathname)) {
     return NextResponse.redirect(new URL("/sign-in", request.url));
   }
 

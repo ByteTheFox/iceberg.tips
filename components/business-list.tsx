@@ -1,10 +1,12 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Database } from "@/lib/supabase/types";
+import { Tables } from "@/lib/types";
 
-type BusinessReport = Database["public"]["Tables"]["business_reports"]["Row"];
+type BusinessReport = Tables<"reports"> & {
+  business: Tables<"businesses"> | null;
+};
 
 interface BusinessListProps {
   reports: BusinessReport[];
@@ -27,10 +29,10 @@ export function BusinessList({ reports }: BusinessListProps) {
     <div className="divide-y">
       {reports.map((report) => (
         <div key={report.id} className="p-4 hover:bg-muted/50">
-          <h3 className="font-medium">{report.business_name}</h3>
+          <h3 className="font-medium">{report.business?.name}</h3>
           <CardHeader>
             <div className="flex justify-between items-start">
-              <CardTitle className="text-xl">{report.business_name}</CardTitle>
+              <CardTitle className="text-xl">{report.business?.name}</CardTitle>
               <Badge className={getTipPracticeBadge(report.tip_practice)}>
                 {report.tip_practice.replace("_", " ").toUpperCase()}
               </Badge>
@@ -38,7 +40,8 @@ export function BusinessList({ reports }: BusinessListProps) {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">
-              {report.address}, {report.city}, {report.state} {report.zip_code}
+              {report.business?.address}, {report.business?.city},{" "}
+              {report.business?.state} {report.business?.zip_code}
             </p>
             {report.details && <p className="mt-2 text-sm">{report.details}</p>}
           </CardContent>
