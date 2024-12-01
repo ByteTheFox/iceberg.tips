@@ -354,12 +354,17 @@ export default function ReportPage() {
         </form>
       </Form>
 
-      <div className="mt-8 p-4 bg-gray-100 rounded-lg">
-        <h2 className="text-sm font-semibold mb-2">Form Values (Debug):</h2>
-        <pre className="text-xs overflow-auto">
-          {JSON.stringify(formValues, null, 2)}
-        </pre>
-      </div>
+      {process.env.NODE_ENV === "development" && (
+        <div className="mt-8 p-4 bg-gray-100 rounded-lg relative">
+          <div className="absolute -top-3 right-2 bg-red-300 text-black text-xs px-2 py-1 rounded-full font-semibold">
+            DEV ONLY
+          </div>
+          <h2 className="text-sm font-semibold mb-2">Form Values (Debug):</h2>
+          <pre className="text-xs overflow-auto">
+            {JSON.stringify(formValues, null, 2)}
+          </pre>
+        </div>
+      )}
     </div>
   );
 }
