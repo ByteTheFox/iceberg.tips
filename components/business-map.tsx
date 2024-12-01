@@ -23,10 +23,12 @@ export function BusinessMap({ reports, center }: BusinessMapProps) {
   );
   const mapRef = useRef<MapRef>(null);
   const [viewport, setViewport] = useState({
-    latitude: 40.7128,
-    longitude: -74.006,
+    latitude: center?.lat || 40.7128,
+    longitude: center?.lng || -74.006,
     zoom: 11,
   });
+
+  console.log(center);
 
   const requestLocation = async () => {
     if (!("geolocation" in navigator)) {
