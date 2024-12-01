@@ -23,7 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/lib/supabase/client";
+import { createClient } from "@/lib/supabase/client";
 import { useMapboxSearch } from "@/hooks/use-mapbox-search";
 import {
   Command,
@@ -40,7 +40,6 @@ import {
 } from "@/components/ui/popover";
 import BusinessConfirmationCard from "@/components/business-confirmation-card";
 import crypto from "crypto";
-import { useUser } from "@supabase/auth-helpers-react";
 import Link from "next/link";
 
 const formSchema = z.object({
@@ -70,6 +69,7 @@ const formSchema = z.object({
 });
 
 export default function ReportPage() {
+  const supabase = createClient();
   const [isLoading, setIsLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
@@ -152,8 +152,9 @@ export default function ReportPage() {
             latitude: values.latitude,
             longitude: values.longitude,
           },
-          { onConflict: "hash", returning: true }
-        );
+          { onConflict: "hash" }
+        )
+        .select();
 
       if (businessError) throw businessError;
 
