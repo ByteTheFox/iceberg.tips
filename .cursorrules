@@ -1,0 +1,12 @@
+This is an application that allows people to report a business's tip practices.
+
+# Technologies
+- Next.js (15)
+- Tailwind CSS
+- Radix UI
+- Supabase
+- Stripe
+- Clerk
+- SWR
+- React Hook Form
+
