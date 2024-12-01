@@ -41,6 +41,7 @@ import {
 import BusinessConfirmationCard from "@/components/business-confirmation-card";
 import crypto from "crypto";
 import { useUser } from "@supabase/auth-helpers-react";
+import Link from "next/link";
 
 const formSchema = z.object({
   country: z.enum(["US", "CA"], {
@@ -264,6 +265,13 @@ export default function ReportPage() {
 
   return (
     <div className="max-w-2xl mx-auto p-4 sm:p-6 lg:p-8">
+      <Link
+        href="/"
+        className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-6"
+      >
+        ← Back to home
+      </Link>
+
       <h1 className="text-2xl font-bold mb-12">Report Business Tip Practice</h1>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
