@@ -126,6 +126,10 @@ export default function ReportPage() {
     try {
       setIsLoading(true);
 
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
       // Create a hash of the business details for deduplication
       const businessString = `${values.businessName
         .toLowerCase()

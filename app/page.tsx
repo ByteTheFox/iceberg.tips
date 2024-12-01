@@ -17,7 +17,7 @@ export default function Home() {
     (Tables<"reports"> & { business: Tables<"businesses"> | null })[]
   >([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const { latitude, longitude, loading: locationLoading } = useGeolocation();
+  const { latitude, longitude } = useGeolocation();
   const supabase = createClient();
 
   useEffect(() => {
