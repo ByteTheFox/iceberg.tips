@@ -59,6 +59,8 @@ const formSchema = z.object({
   tipPractice: z.string({
     required_error: "Please select a tip practice",
   }),
+  suggestedTips: z.array(z.number()).optional(),
+  serviceChargePercentage: z.number().nullable(),
   details: z.string().optional(),
   latitude: z.number().optional(),
   longitude: z.number().optional(),
@@ -83,10 +85,14 @@ export default function ReportPage() {
       zipCode: "",
       tipPractice: "",
       details: "",
+      suggestedTips: [],
+      serviceChargePercentage: null,
     },
   });
 
   const [selectedBusiness, setSelectedBusiness] = useState<any>(null);
+  const [tipPercentages, setTipPercentages] = useState<number[]>([]);
+  const [tipPercentagesModified, setTipPercentagesModified] = useState(false);
 
   useEffect(() => {
     const businessName = form.watch("businessName");
@@ -99,15 +105,25 @@ export default function ReportPage() {
     }
   }, [form.watch("businessName"), form.watch("country")]);
 
+  useEffect(() => {
+    const tipPractice = form.watch("tipPractice");
+
+    // Reset UI state
+    setTipPercentages([]);
+    setTipPercentagesModified(false);
+
+    // Set default percentages in UI only if tip requested
+    if (tipPractice === "tip_requested") {
+      const defaultPercentages = [10, 15, 20];
+      setTipPercentages(defaultPercentages);
+    }
+  }, [form.watch("tipPractice")]);
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
       setIsLoading(true);
 
-      // TODO: Implement geocoding to get lat/lng from address
-      const mockLatitude = 37.7749;
-      const mockLongitude = -122.4194;
-
-      const { error } = await supabase.from("business_reports").insert({
+      const reportData = {
         country: values.country,
         business_name: values.businessName,
         address: values.address,
@@ -116,10 +132,27 @@ export default function ReportPage() {
         zip_code: values.zipCode,
         tip_practice: values.tipPractice,
         details: values.details,
-        latitude: mockLatitude,
-        longitude: mockLongitude,
+        latitude: values.latitude,
+        longitude: values.longitude,
         reported_by: "anonymous", // TODO: Implement auth
-      });
+      };
+
+      if (values.tipPractice === "tip_requested" && tipPercentagesModified) {
+        Object.assign(reportData, { suggested_tips: values.suggestedTips });
+      }
+
+      if (
+        values.tipPractice === "service_charge" &&
+        values.serviceChargePercentage !== null
+      ) {
+        Object.assign(reportData, {
+          service_charge_percentage: values.serviceChargePercentage,
+        });
+      }
+
+      const { error } = await supabase
+        .from("business_reports")
+        .insert(reportData);
 
       if (error) throw error;
 
@@ -173,6 +206,28 @@ export default function ReportPage() {
       values.state &&
       values.zipCode;
     return values.country && hasBusinessInfo && values.tipPractice;
+  };
+
+  const addTipPercentage = () => {
+    setTipPercentagesModified(true);
+    setTipPercentages([...tipPercentages, 0]);
+    form.setValue("suggestedTips", [...tipPercentages, 0]);
+  };
+
+  const updateTipPercentage = (index: number, value: string) => {
+    setTipPercentagesModified(true);
+    const newValue = parseInt(value) || 0;
+    const newTipPercentages = [...tipPercentages];
+    newTipPercentages[index] = newValue;
+    setTipPercentages(newTipPercentages);
+    form.setValue("suggestedTips", newTipPercentages);
+  };
+
+  const removeTipPercentage = (index: number) => {
+    setTipPercentagesModified(true);
+    const newTipPercentages = tipPercentages.filter((_, i) => i !== index);
+    setTipPercentages(newTipPercentages);
+    form.setValue("suggestedTips", newTipPercentages);
   };
 
   return (
@@ -317,25 +372,87 @@ export default function ReportPage() {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="no_tipping">
-                        No Tipping Allowed
-                      </SelectItem>
-                      <SelectItem value="living_wage">
-                        Living Wage (No Tips Needed)
-                      </SelectItem>
-                      <SelectItem value="traditional">
-                        Traditional Tipping
+                      <SelectItem value="no_tipping">No Tipping</SelectItem>
+                      <SelectItem value="tip_requested">
+                        Tip Requested
                       </SelectItem>
                       <SelectItem value="service_charge">
                         Mandatory Service Charge
                       </SelectItem>
-                      <SelectItem value="tip_pooling">Tip Pooling</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
                 </FormItem>
               )}
             />
+
+            {form.watch("tipPractice") === "tip_requested" && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <FormLabel>Suggested Tip Percentages (Optional)</FormLabel>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={addTipPercentage}
+                  >
+                    Add Percentage
+                  </Button>
+                </div>
+                {tipPercentages.map((percentage, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={percentage}
+                      onChange={(e) =>
+                        updateTipPercentage(index, e.target.value)
+                      }
+                      className="w-24"
+                    />
+                    <span>%</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeTipPercentage(index)}
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {form.watch("tipPractice") === "service_charge" && (
+              <FormField
+                control={form.control}
+                name="serviceChargePercentage"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Service Charge Percentage (Optional)</FormLabel>
+                    <div className="flex items-center gap-2">
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={field.value ?? ""}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            field.onChange(value ? Number(value) : null);
+                          }}
+                          className="w-24"
+                        />
+                      </FormControl>
+                      <span>%</span>
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             <FormField
               control={form.control}
