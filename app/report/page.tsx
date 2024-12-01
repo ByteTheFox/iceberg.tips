@@ -163,6 +163,18 @@ export default function ReportPage() {
 
   const formValues = form.watch();
 
+  const isFormValid = () => {
+    const values = form.getValues();
+    const hasBusinessInfo =
+      selectedBusiness &&
+      values.businessName &&
+      values.address &&
+      values.city &&
+      values.state &&
+      values.zipCode;
+    return values.country && hasBusinessInfo && values.tipPractice;
+  };
+
   return (
     <div className="max-w-2xl mx-auto p-4 sm:p-6 lg:p-8">
       <h1 className="text-2xl font-bold mb-12">Report Business Tip Practice</h1>
@@ -230,8 +242,9 @@ export default function ReportPage() {
                             ) {
                               e.preventDefault();
                               setOpen(true);
-                              const commandInput =
-                                document.querySelector("[cmdk-input]");
+                              const commandInput = document.querySelector(
+                                "[cmdk-input]"
+                              ) as HTMLElement;
                               commandInput?.focus();
                             }
                           }}
@@ -317,7 +330,6 @@ export default function ReportPage() {
                         Mandatory Service Charge
                       </SelectItem>
                       <SelectItem value="tip_pooling">Tip Pooling</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -347,7 +359,7 @@ export default function ReportPage() {
           <Button
             type="submit"
             className="w-full mt-12"
-            disabled={isLoading || !form.watch("country")}
+            disabled={isLoading || !isFormValid()}
           >
             {isLoading ? "Submitting..." : "Submit Report"}
           </Button>
