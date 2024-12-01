@@ -6,14 +6,35 @@ import type { NextRequest } from "next/server";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
-  const requestUrl = new URL(request.url);
-  const code = requestUrl.searchParams.get("code");
+  try {
+    const requestUrl = new URL(request.url);
+    const code = requestUrl.searchParams.get("code");
 
-  if (code) {
-    const supabase = createRouteHandlerClient({ cookies });
-    await supabase.auth.exchangeCodeForSession(code);
+    if (code) {
+      const cookieStore = cookies();
+      const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+
+      const { error } = await supabase.auth.exchangeCodeForSession(code);
+
+      if (error) {
+        throw error;
+      }
+
+      // Get the session to ensure it's established
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session) {
+        throw new Error("No session established");
+      }
+    }
+
+    // Create a clean URL without any query parameters
+    const redirectUrl = new URL("/", requestUrl.origin);
+    return NextResponse.redirect(redirectUrl);
+  } catch (error) {
+    console.error("Callback error:", error);
+    return NextResponse.redirect(new URL("/sign-in", request.url));
   }
-
-  // URL to redirect to after sign in process completes
-  return NextResponse.redirect(new URL("/", requestUrl.origin));
 }

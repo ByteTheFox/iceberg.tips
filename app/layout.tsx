@@ -2,6 +2,10 @@ import "./globals.css";
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { Toaster } from "sonner";
+import SupabaseProvider from "@/components/providers/supabase-provider";
+import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
+import { cookies } from "next/headers";
+import { QueryParamCleaner } from "@/components/providers/query-param-cleaner";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -17,15 +21,24 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://iceberg.tips"),
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const supabase = createServerComponentClient({ cookies });
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        {children}
+        <SupabaseProvider session={session}>
+          <QueryParamCleaner />
+          {children}
+        </SupabaseProvider>
         <Toaster />
       </body>
     </html>

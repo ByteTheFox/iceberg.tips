@@ -6,21 +6,35 @@ export async function middleware(req: NextRequest) {
   const res = NextResponse.next();
   const supabase = createMiddlewareClient({ req, res });
 
-  // Refresh session if expired - required for Server Components
+  // Refresh session and get an up-to-date session
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  // If accessing /report without a session, redirect to sign-in
+  if (!session && req.nextUrl.pathname.startsWith("/report")) {
+    const redirectUrl = new URL("/sign-in", req.url);
+    // Encode the redirectTo parameter
+    redirectUrl.searchParams.set(
+      "redirectTo",
+      encodeURIComponent(req.nextUrl.pathname)
+    );
+    return NextResponse.redirect(redirectUrl);
+  }
+
+  // Create a new response with the session
+  const response = NextResponse.next({
+    request: {
+      headers: req.headers,
+    },
+  });
+
+  // Refresh the auth cookies
   await supabase.auth.getSession();
 
-  return res;
+  return response;
 }
 
 export const config = {
-  matcher: [
-    /*
-     * Match all request paths except:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public folder
-     */
-    "/((?!_next/static|_next/image|favicon.ico|public).*)",
-  ],
+  matcher: ["/report", "/report/:path*", "/auth/callback"],
 };

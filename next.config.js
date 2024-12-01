@@ -1,6 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: "export",
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -18,6 +17,19 @@ const nextConfig = {
       "mapbox-gl": "mapbox-gl",
     };
     return config;
+  },
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "no-store",
+          },
+        ],
+      },
+    ];
   },
 };
 

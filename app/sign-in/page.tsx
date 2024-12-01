@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { supabase } from "@/lib/supabase/client";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import { useSupabase } from "@/components/providers/supabase-provider";
 
 type SignInForm = {
   email: string;
@@ -11,6 +12,15 @@ type SignInForm = {
 
 export default function SignIn() {
   const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
+  const { supabase, session } = useSupabase();
+
+  // If already authenticated, go to home
+  if (session) {
+    router.push("/");
+    return null;
+  }
+
   const {
     register,
     handleSubmit,
@@ -44,7 +54,6 @@ export default function SignIn() {
   return (
     <div className="max-w-md mx-auto mt-16 p-6">
       <h1 className="text-2xl font-bold mb-6">Sign In</h1>
-
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>
           <label htmlFor="email" className="block text-sm font-medium mb-1">
