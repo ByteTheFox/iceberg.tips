@@ -38,6 +38,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import BusinessConfirmationCard from "@/components/business-confirmation-card";
 
 const formSchema = z.object({
   country: z.enum(["US", "CA"], {
@@ -84,6 +85,8 @@ export default function ReportPage() {
       details: "",
     },
   });
+
+  const [selectedBusiness, setSelectedBusiness] = useState<any>(null);
 
   useEffect(() => {
     const businessName = form.watch("businessName");
@@ -138,6 +141,16 @@ export default function ReportPage() {
   }
 
   const handleSelect = (result: any) => {
+    setSelectedBusiness({
+      name: result.place_name.split(",")[0],
+      address: result.properties.address || "",
+      city: result.properties.city || "",
+      state: result.properties.state || "",
+      zipCode: result.properties.postcode || "",
+      latitude: result.center[1],
+      longitude: result.center[0],
+    });
+
     form.setValue("businessName", result.place_name.split(",")[0]);
     form.setValue("address", result.properties.address || "");
     form.setValue("city", result.properties.city || "");
@@ -224,7 +237,11 @@ export default function ReportPage() {
                       </FormControl>
                     </PopoverTrigger>
                     <PopoverContent className="w-[400px] p-0" align="start">
-                      <Command loop shouldFilter={false}>
+                      <Command
+                        loop={false}
+                        shouldFilter={false}
+                        value={searchResults[0]?.place_name}
+                      >
                         <CommandInput
                           placeholder="Search for a business..."
                           value={field.value}
@@ -243,12 +260,13 @@ export default function ReportPage() {
                             {isSearching ? "Searching..." : "No results found."}
                           </CommandEmpty>
                           <CommandGroup>
-                            {searchResults.map((result) => (
+                            {searchResults.map((result, index) => (
                               <CommandItem
                                 key={result.place_name}
                                 value={result.place_name}
                                 onSelect={() => handleSelect(result)}
                                 className="cursor-pointer"
+                                data-highlighted={index === 0}
                               >
                                 {result.place_name}
                               </CommandItem>
@@ -263,90 +281,9 @@ export default function ReportPage() {
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="address"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Street Address</FormLabel>
-                  <FormControl>
-                    <Input
-                      disabled={!form.watch("country")}
-                      placeholder="Enter street address"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="grid grid-cols-3 gap-6">
-              <FormField
-                control={form.control}
-                name="city"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>City</FormLabel>
-                    <FormControl>
-                      <Input
-                        disabled={!form.watch("country")}
-                        placeholder="City"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="state"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      {form.watch("country") === "CA" ? "Province" : "State"}
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        disabled={!form.watch("country")}
-                        placeholder={
-                          form.watch("country") === "CA" ? "Province" : "State"
-                        }
-                        maxLength={2}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="zipCode"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      {form.watch("country") === "CA"
-                        ? "Postal Code"
-                        : "ZIP Code"}
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        disabled={!form.watch("country")}
-                        placeholder={
-                          form.watch("country") === "CA" ? "A1A 1A1" : "12345"
-                        }
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+            {selectedBusiness && (
+              <BusinessConfirmationCard business={selectedBusiness} />
+            )}
 
             <FormField
               control={form.control}
