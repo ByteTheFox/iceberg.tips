@@ -1,40 +1,35 @@
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import { type EmailOtpType } from "@supabase/supabase-js";
+import { type NextRequest } from "next/server";
 
-export const dynamic = "force-dynamic";
+import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
 
 export async function GET(request: NextRequest) {
-  try {
-    const requestUrl = new URL(request.url);
-    const code = requestUrl.searchParams.get("code");
+  const { searchParams } = new URL(request.url);
+  const token_hash = searchParams.get("token_hash");
+  const type = searchParams.get("type") as EmailOtpType | null;
+  const code = searchParams.get("code");
+  const next = searchParams.get("next") ?? "/";
 
-    if (code) {
-      const cookieStore = cookies();
-      const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+  const supabase = await createClient();
 
-      const { error } = await supabase.auth.exchangeCodeForSession(code);
-
-      if (error) {
-        throw error;
-      }
-
-      // Get the session to ensure it's established
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      if (!session) {
-        throw new Error("No session established");
-      }
+  if (code) {
+    // Handle magic link authentication
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    if (!error) {
+      redirect(next);
     }
-
-    // Create a clean URL without any query parameters
-    const redirectUrl = new URL("/", requestUrl.origin);
-    return NextResponse.redirect(redirectUrl);
-  } catch (error) {
-    console.error("Callback error:", error);
-    return NextResponse.redirect(new URL("/sign-in", request.url));
+  } else if (token_hash && type) {
+    // Handle OTP authentication
+    const { error } = await supabase.auth.verifyOtp({
+      type,
+      token_hash,
+    });
+    if (!error) {
+      redirect(next);
+    }
   }
+
+  // redirect the user to an error page with some instructions
+  redirect("/error");
 }

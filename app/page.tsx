@@ -6,7 +6,7 @@ import { PlusCircle, Search } from "lucide-react";
 import Link from "next/link";
 import { BusinessList } from "@/components/business-list";
 import { BusinessMap } from "@/components/business-map";
-import { supabase } from "@/lib/supabase/client";
+import { createClient } from "@/lib/supabase/client";
 import { type BusinessReport } from "@/lib/types";
 import { Input } from "@/components/ui/input";
 import { EmptySearch } from "@/components/ui/empty-search";
@@ -16,6 +16,7 @@ export default function Home() {
   const [reports, setReports] = useState<BusinessReport[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const { latitude, longitude, loading: locationLoading } = useGeolocation();
+  const supabase = createClient();
 
   useEffect(() => {
     const fetchReports = async () => {

@@ -1,40 +1,38 @@
-import { createMiddlewareClient } from "@supabase/auth-helpers-nextjs";
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
+import { createClient } from "./lib/supabase/server";
 
-export async function middleware(req: NextRequest) {
-  const res = NextResponse.next();
-  const supabase = createMiddlewareClient({ req, res });
+export async function middleware(request: NextRequest) {
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  });
 
-  // Refresh session and get an up-to-date session
+  const supabase = await createClient();
+
+  // Optional: Check auth state
   const {
     data: { session },
   } = await supabase.auth.getSession();
 
-  // If accessing /report without a session, redirect to sign-in
-  if (!session && req.nextUrl.pathname.startsWith("/report")) {
-    const redirectUrl = new URL("/sign-in", req.url);
-    // Encode the redirectTo parameter
-    redirectUrl.searchParams.set(
-      "redirectTo",
-      encodeURIComponent(req.nextUrl.pathname)
-    );
-    return NextResponse.redirect(redirectUrl);
+  // You can also add protected routes here
+  const protectedRoutes = ["/report"];
+  if (!session && protectedRoutes.includes(request.nextUrl.pathname)) {
+    return NextResponse.redirect(new URL("/sign-in", request.url));
   }
-
-  // Create a new response with the session
-  const response = NextResponse.next({
-    request: {
-      headers: req.headers,
-    },
-  });
-
-  // Refresh the auth cookies
-  await supabase.auth.getSession();
 
   return response;
 }
 
 export const config = {
-  matcher: ["/report", "/report/:path*", "/auth/callback"],
+  matcher: [
+    /*
+     * Match all request paths except:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public folder
+     */
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+  ],
 };
