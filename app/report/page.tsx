@@ -39,6 +39,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import BusinessConfirmationCard from "@/components/business-confirmation-card";
+import crypto from "crypto";
+import { useUser } from "@supabase/auth-helpers-react";
 
 const formSchema = z.object({
   country: z.enum(["US", "CA"], {
@@ -94,6 +96,8 @@ export default function ReportPage() {
   const [tipPercentages, setTipPercentages] = useState<number[]>([]);
   const [tipPercentagesModified, setTipPercentagesModified] = useState(false);
 
+  const { user } = useUser();
+
   useEffect(() => {
     const businessName = form.watch("businessName");
     const country = form.watch("country");
@@ -123,20 +127,46 @@ export default function ReportPage() {
     try {
       setIsLoading(true);
 
+      // Create a hash of the business details for deduplication
+      const businessString = `${values.businessName
+        .toLowerCase()
+        .trim()}|${values.address.toLowerCase().trim()}|${values.city
+        .toLowerCase()
+        .trim()}|${values.state.toUpperCase()}|${values.zipCode}`;
+      const businessHash = crypto
+        .createHash("sha256")
+        .update(businessString)
+        .digest("hex");
+
+      // First, upsert the business
+      const { data: business, error: businessError } = await supabase
+        .from("businesses")
+        .upsert(
+          {
+            hash: businessHash,
+            name: values.businessName,
+            address: values.address,
+            city: values.city,
+            state: values.state,
+            zip_code: values.zipCode,
+            country: values.country,
+            latitude: values.latitude,
+            longitude: values.longitude,
+          },
+          { onConflict: "hash", returning: true }
+        );
+
+      if (businessError) throw businessError;
+
+      // Then create the report
       const reportData = {
-        country: values.country,
-        business_name: values.businessName,
-        address: values.address,
-        city: values.city,
-        state: values.state,
-        zip_code: values.zipCode,
+        business_id: business![0].id,
+        user_id: user?.id || null,
         tip_practice: values.tipPractice,
-        details: values.details,
-        latitude: values.latitude,
-        longitude: values.longitude,
-        reported_by: "anonymous", // TODO: Implement auth
+        details: values.details || null,
       };
 
+      // Add optional fields based on tip practice
       if (values.tipPractice === "tip_requested" && tipPercentagesModified) {
         Object.assign(reportData, { suggested_tips: values.suggestedTips });
       }
@@ -150,11 +180,11 @@ export default function ReportPage() {
         });
       }
 
-      const { error } = await supabase
-        .from("business_reports")
+      const { error: reportError } = await supabase
+        .from("reports")
         .insert(reportData);
 
-      if (error) throw error;
+      if (reportError) throw reportError;
 
       toast({
         title: "Report submitted",
@@ -162,7 +192,11 @@ export default function ReportPage() {
       });
 
       form.reset();
+      setSelectedBusiness(null);
+      setTipPercentages([]);
+      setTipPercentagesModified(false);
     } catch (error) {
+      console.error("Error submitting report:", error);
       toast({
         title: "Error",
         description: "Failed to submit report. Please try again.",

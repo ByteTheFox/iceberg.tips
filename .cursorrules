@@ -10,3 +10,9 @@ This is an application that allows people to report a business's tip practices.
 - SWR
 - React Hook Form
 
+# Database
+- The supabase/migrations folder is used to store the database migrations.
+- The supabase/seed.ts file is used to seed the database with initial data.
+
+When asked to generate code that interacts with supabase, use the supabase client that is already imported in the project and try your best to follow
+the schema defined based on the database migrations.
