@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { PlusCircle } from "lucide-react";
 import Link from "next/link";
-import { LocationSearch } from "@/components/LocationSearch";
+import { LocationSearch } from "@/components/location-search";
 
 export function Header() {
   return (

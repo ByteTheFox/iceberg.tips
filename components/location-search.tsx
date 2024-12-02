@@ -98,7 +98,20 @@ export function LocationSearch() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (query.trim()) {
-      router.push(`/search?location=${encodeURIComponent(query.trim())}`);
+      fetch(
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
+          query.trim()
+        )}.json?access_token=${
+          process.env.NEXT_PUBLIC_MAPBOX_TOKEN
+        }&types=place,postcode,address&limit=1`
+      )
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.features && data.features[0]) {
+            const [lng, lat] = data.features[0].center;
+            router.push(`/?lat=${lat}&lng=${lng}`);
+          }
+        });
       setShowSuggestions(false);
       setHighlightedIndex(-1);
     }
@@ -106,9 +119,8 @@ export function LocationSearch() {
 
   const handleSuggestionClick = (suggestion: GeocodingResult) => {
     setQuery(suggestion.place_name);
-    router.push(
-      `/search?location=${encodeURIComponent(suggestion.place_name)}`
-    );
+    const [lng, lat] = suggestion.center;
+    router.push(`/?lat=${lat}&lng=${lng}`);
     setShowSuggestions(false);
     setHighlightedIndex(-1);
   };

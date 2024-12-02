@@ -21,8 +21,8 @@ export function BusinessMap({ businesses, center }: BusinessMapProps) {
     useState<Tables<"business_stats"> | null>(null);
   const mapRef = useRef<MapRef>(null);
   const [viewport, setViewport] = useState({
-    latitude: center?.lat || 40.7128,
-    longitude: center?.lng || -74.006,
+    latitude: center?.lat || 49.2827,
+    longitude: center?.lng || -123.1207,
     zoom: 12,
   });
 

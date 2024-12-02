@@ -9,17 +9,29 @@ import { BusinessMap } from "./business-map";
 import { EmptySearch } from "./ui/empty-search";
 import { useGeolocation } from "@/hooks/use-geolocation";
 
+interface BusinessUIProps {
+  businesses: Tables<"business_stats">[] | null;
+  initialLat?: number;
+  initialLng?: number;
+}
+
 export default function BusinessUI({
   businesses,
-}: {
-  businesses: Tables<"business_stats">[] | null;
-}) {
+  initialLat,
+  initialLng,
+}: BusinessUIProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const { latitude, longitude } = useGeolocation();
 
   const filteredBusinesses = businesses?.filter((business) =>
     business.name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // Use initial coordinates if provided, fall back to geolocation, then Vancouver coordinates
+  const mapCenter = {
+    lat: initialLat ?? latitude ?? 49.2827,
+    lng: initialLng ?? longitude ?? -123.1207,
+  };
 
   return (
     <div className="flex flex-1 h-[calc(100vh-4rem)]">
@@ -50,11 +62,7 @@ export default function BusinessUI({
       <div className="flex-1">
         <BusinessMap
           businesses={filteredBusinesses || null}
-          center={
-            latitude && longitude
-              ? { lat: latitude, lng: longitude }
-              : undefined
-          }
+          center={mapCenter}
         />
       </div>
     </div>
