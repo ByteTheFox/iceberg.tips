@@ -41,6 +41,7 @@ import {
 import BusinessConfirmationCard from "@/components/business-confirmation-card";
 import crypto from "crypto";
 import Link from "next/link";
+import { tipPracticeOptions } from "@/lib/constants";
 
 const formSchema = z.object({
   country: z.enum(["US", "CA"], {
@@ -456,13 +457,11 @@ export default function ReportPage() {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="no_tipping">No Tipping</SelectItem>
-                      <SelectItem value="tip_requested">
-                        Tip Requested
-                      </SelectItem>
-                      <SelectItem value="service_charge">
-                        Mandatory Service Charge
-                      </SelectItem>
+                      {tipPracticeOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <FormMessage />

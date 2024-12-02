@@ -3,6 +3,7 @@
 import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tables } from "@/lib/types";
+import { tipPracticeOptions } from "@/lib/constants";
 
 type BusinessReport = Tables<"reports"> & {
   business: Tables<"businesses"> | null;
@@ -13,28 +14,33 @@ interface BusinessListProps {
 }
 
 export function BusinessList({ reports }: BusinessListProps) {
-  const getTipPracticeBadge = (practice: string) => {
-    const colors: Record<string, string> = {
-      no_tipping: "bg-blue-100 text-blue-800",
-      living_wage: "bg-green-100 text-green-800",
-      traditional: "bg-gray-100 text-gray-800",
-      service_charge: "bg-purple-100 text-purple-800",
-      tip_pooling: "bg-yellow-100 text-yellow-800",
-      other: "bg-red-100 text-red-800",
-    };
-    return colors[practice] || colors.other;
+  const getTipPracticeBadgeClassName = (practice: string) => {
+    const color = tipPracticeOptions.find(
+      (option) => option.value === practice
+    );
+
+    return color?.className || "bg-gray-100 text-gray-800";
+  };
+
+  const getTipPracticeBadgeLabel = (practice: string) => {
+    const label = tipPracticeOptions.find(
+      (option) => option.value === practice
+    );
+
+    return label?.label || "Unknown";
   };
 
   return (
-    <div className="divide-y">
+    <div className="divide-y divide-gray-100">
       {reports.map((report) => (
-        <div key={report.id} className="p-4 hover:bg-muted/50">
-          <h3 className="font-medium">{report.business?.name}</h3>
+        <div key={report.id} className="hover:bg-muted/50">
           <CardHeader>
             <div className="flex justify-between items-start">
               <CardTitle className="text-xl">{report.business?.name}</CardTitle>
-              <Badge className={getTipPracticeBadge(report.tip_practice)}>
-                {report.tip_practice.replace("_", " ").toUpperCase()}
+              <Badge
+                className={getTipPracticeBadgeClassName(report.tip_practice)}
+              >
+                {getTipPracticeBadgeLabel(report.tip_practice)}
               </Badge>
             </div>
           </CardHeader>
