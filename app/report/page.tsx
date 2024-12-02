@@ -42,6 +42,7 @@ import BusinessConfirmationCard from "@/components/business-confirmation-card";
 import crypto from "crypto";
 import Link from "next/link";
 import { tipPracticeOptions } from "@/lib/constants";
+import { useDebounce } from "@/hooks/use-debounce";
 
 const formSchema = z.object({
   country: z.enum(["US", "CA"], {
@@ -99,17 +100,16 @@ export default function ReportPage() {
   const [selectedBusiness, setSelectedBusiness] = useState<any>(null);
   const [tipPercentages, setTipPercentages] = useState<number[]>([]);
   const [tipPercentagesModified, setTipPercentagesModified] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
   useEffect(() => {
-    const businessName = form.watch("businessName");
-    const country = form.watch("country");
-    if (businessName.length > 2 && country) {
-      const timer = setTimeout(() => {
-        searchAddress(businessName, country);
-      }, 500);
-      return () => clearTimeout(timer);
+    if (debouncedSearchTerm.length > 2 && form.watch("country")) {
+      searchAddress(debouncedSearchTerm, form.watch("country"));
+    } else {
+      clearResults();
     }
-  }, [form.watch("businessName"), form.watch("country")]);
+  }, [debouncedSearchTerm, form.watch("country")]);
 
   useEffect(() => {
     const tipPractice = form.watch("tipPractice");
@@ -236,24 +236,24 @@ export default function ReportPage() {
     }
   }
 
-  const handleSelect = (result: any) => {
+  const handleSelect = (result: SearchResult) => {
     setSelectedBusiness({
-      name: result.place_name.split(",")[0],
-      address: result.properties.address || "",
-      city: result.properties.city || "",
-      state: result.properties.state || "",
-      zipCode: result.properties.postcode || "",
-      latitude: result.center[1],
-      longitude: result.center[0],
+      name: result.properties.name,
+      address: result.properties.address,
+      city: result.properties.context.place.name,
+      state: result.properties.context.region.name,
+      zipCode: result.properties.context.postcode.name,
+      latitude: result.properties.coordinates.latitude,
+      longitude: result.properties.coordinates.longitude,
     });
 
-    form.setValue("businessName", result.place_name.split(",")[0]);
-    form.setValue("address", result.properties.address || "");
-    form.setValue("city", result.properties.city || "");
-    form.setValue("state", result.properties.state || "");
-    form.setValue("zipCode", result.properties.postcode || "");
-    form.setValue("latitude", result.center[1]);
-    form.setValue("longitude", result.center[0]);
+    form.setValue("businessName", result.properties.name);
+    form.setValue("address", result.properties.address);
+    form.setValue("city", result.properties.context.place.name);
+    form.setValue("state", result.properties.context.region.name);
+    form.setValue("zipCode", result.properties.context.postcode.name);
+    form.setValue("latitude", result.properties.coordinates.latitude);
+    form.setValue("longitude", result.properties.coordinates.longitude);
     setOpen(false);
   };
 
@@ -345,92 +345,68 @@ export default function ReportPage() {
             )}
           />
 
-          <div
-            className={`space-y-6 ${
-              !form.watch("country") ? "opacity-50 pointer-events-none" : ""
-            }`}
-          >
+          <div className="space-y-6">
             <FormField
               control={form.control}
               name="businessName"
               render={({ field }) => (
-                <FormItem className="flex flex-col">
+                <FormItem className="flex flex-col relative">
                   <FormLabel>Business Name</FormLabel>
-                  <Popover open={open} onOpenChange={setOpen}>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Input
-                          disabled={!form.watch("country")}
-                          placeholder="Enter business name"
-                          {...field}
-                          onChange={(e) => {
-                            field.onChange(e);
-                            if (e.target.value.length > 2) {
-                              setOpen(true);
-                              searchAddress(
-                                e.target.value,
-                                form.watch("country")
-                              );
-                            } else {
-                              clearResults();
-                            }
-                          }}
-                          onKeyDown={(e) => {
-                            if (
-                              e.key === "ArrowDown" &&
-                              searchResults.length > 0
-                            ) {
-                              e.preventDefault();
-                              setOpen(true);
-                              const commandInput = document.querySelector(
-                                "[cmdk-input]"
-                              ) as HTMLElement;
-                              commandInput?.focus();
-                            }
-                          }}
-                        />
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[400px] p-0" align="start">
-                      <Command
-                        loop={false}
-                        shouldFilter={false}
-                        value={searchResults[0]?.place_name}
-                      >
-                        <CommandInput
-                          placeholder="Search for a business..."
-                          value={field.value}
-                          onValueChange={(value) => {
-                            field.onChange(value);
-                            if (value.length > 2) {
-                              setOpen(true);
-                              searchAddress(value, form.watch("country"));
-                            } else {
-                              clearResults();
-                            }
-                          }}
-                        />
-                        <CommandList>
-                          <CommandEmpty>
-                            {isSearching ? "Searching..." : "No results found."}
-                          </CommandEmpty>
-                          <CommandGroup>
-                            {searchResults.map((result, index) => (
-                              <CommandItem
-                                key={result.place_name}
-                                value={result.place_name}
-                                onSelect={() => handleSelect(result)}
-                                className="cursor-pointer"
-                                data-highlighted={index === 0}
-                              >
-                                {result.place_name}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
+                  <FormControl>
+                    <div className="relative">
+                      <Input
+                        disabled={!form.watch("country")}
+                        placeholder="Enter business name"
+                        {...field}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          setSearchTerm(e.target.value);
+                          if (e.target.value.length > 2) {
+                            setOpen(true);
+                          }
+                        }}
+                      />
+                      {open && searchResults.length > 0 && (
+                        <div className="absolute w-full z-50 top-[calc(100%+1px)] rounded-md border bg-popover shadow-md overflow-hidden">
+                          <Command
+                            loop={false}
+                            shouldFilter={false}
+                            className="border-none"
+                          >
+                            <CommandList>
+                              <CommandEmpty>
+                                {isSearching
+                                  ? "Searching..."
+                                  : "No results found."}
+                              </CommandEmpty>
+                              <CommandGroup className="overflow-hidden">
+                                {searchResults.map((result, index) => (
+                                  <CommandItem
+                                    key={`${result.properties.mapbox_id}-${index}`}
+                                    value={`${result.properties.mapbox_id}-${index}`}
+                                    onSelect={() => {
+                                      handleSelect(result);
+                                      setOpen(false);
+                                    }}
+                                    className="cursor-pointer hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                                  >
+                                    <div className="flex flex-col py-2 w-full">
+                                      <span className="font-medium">
+                                        {result.properties.name}
+                                      </span>
+                                      <span className="text-sm text-muted-foreground">
+                                        {result.properties.full_address}
+                                      </span>
+                                    </div>
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </div>
+                      )}
+                    </div>
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
