@@ -6,9 +6,9 @@ import BusinessUI from "@/components/business-ui";
 
 export default async function Home() {
   const supabase = await createClient();
-  const { data: reports } = await supabase
-    .from("reports")
-    .select("*, business:businesses(*)");
+  const { data: businesses } = await supabase
+    .from("business_stats")
+    .select("*");
 
   return (
     <main className="min-h-screen bg-background flex flex-col">
@@ -24,7 +24,7 @@ export default async function Home() {
         </div>
       </div>
 
-      <BusinessUI reports={reports} />
+      <BusinessUI businesses={businesses} />
     </main>
   );
 }

@@ -88,6 +88,7 @@ export type Database = {
           service_charge_percentage: number | null
           suggested_tips: number[] | null
           tip_practice: string
+          tips_go_to_staff: boolean | null
           user_id: string | null
         }
         Insert: {
@@ -98,6 +99,7 @@ export type Database = {
           service_charge_percentage?: number | null
           suggested_tips?: number[] | null
           tip_practice: string
+          tips_go_to_staff?: boolean | null
           user_id?: string | null
         }
         Update: {
@@ -108,9 +110,17 @@ export type Database = {
           service_charge_percentage?: number | null
           suggested_tips?: number[] | null
           tip_practice?: string
+          tips_go_to_staff?: boolean | null
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "reports_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "business_stats"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "reports_business_id_fkey"
             columns: ["business_id"]
@@ -122,7 +132,28 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      business_stats: {
+        Row: {
+          address: string | null
+          city: string | null
+          computed_service_charge_percentage: number | null
+          computed_suggested_tips: number[] | null
+          computed_tip_practice: string | null
+          computed_tips_go_to_staff: boolean | null
+          country: string | null
+          created_at: string | null
+          hash: string | null
+          id: string | null
+          latitude: number | null
+          longitude: number | null
+          name: string | null
+          report_count: number | null
+          state: string | null
+          updated_at: string | null
+          zip_code: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       [_ in never]: never

@@ -10,27 +10,20 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
-type BusinessReport = Tables<"reports"> & {
-  business: Tables<"businesses"> | null;
-};
-
 interface BusinessMapProps {
-  reports: BusinessReport[];
+  businesses: Tables<"business_stats">[] | null;
   center?: { lat: number; lng: number };
 }
 
-export function BusinessMap({ reports, center }: BusinessMapProps) {
-  const [selectedReport, setSelectedReport] = useState<BusinessReport | null>(
-    null
-  );
+export function BusinessMap({ businesses, center }: BusinessMapProps) {
+  const [selectedBusiness, setSelectedBusiness] =
+    useState<Tables<"business_stats"> | null>(null);
   const mapRef = useRef<MapRef>(null);
   const [viewport, setViewport] = useState({
     latitude: center?.lat || 40.7128,
     longitude: center?.lng || -74.006,
-    zoom: 11,
+    zoom: 12,
   });
-
-  console.log(center);
 
   const requestLocation = async () => {
     if (!("geolocation" in navigator)) {
@@ -119,14 +112,14 @@ export function BusinessMap({ reports, center }: BusinessMapProps) {
         </Button>
       </div>
 
-      {reports.map((report) => (
+      {businesses?.map((business) => (
         <Marker
-          key={report.id}
-          latitude={report.business?.latitude || 0}
-          longitude={report.business?.longitude || 0}
+          key={business.id}
+          latitude={business.latitude ?? 0}
+          longitude={business.longitude ?? 0}
           onClick={(e) => {
             e.originalEvent.stopPropagation();
-            setSelectedReport(report);
+            setSelectedBusiness(business);
           }}
         >
           <div className="cursor-pointer transform transition-transform hover:scale-110">
@@ -137,11 +130,11 @@ export function BusinessMap({ reports, center }: BusinessMapProps) {
         </Marker>
       ))}
 
-      {selectedReport && (
+      {selectedBusiness && (
         <Popup
-          latitude={selectedReport.business?.latitude || 0}
-          longitude={selectedReport.business?.longitude || 0}
-          onClose={() => setSelectedReport(null)}
+          latitude={selectedBusiness.latitude ?? 0}
+          longitude={selectedBusiness.longitude ?? 0}
+          onClose={() => setSelectedBusiness(null)}
           closeButton={true}
           closeOnClick={false}
           className="w-72"
@@ -149,23 +142,27 @@ export function BusinessMap({ reports, center }: BusinessMapProps) {
         >
           <Card className="border-0 shadow-none">
             <CardHeader className="px-0 pt-0">
-              <CardTitle className="text-sm">
-                {selectedReport.business?.name}
-              </CardTitle>
+              <CardTitle className="text-sm">{selectedBusiness.name}</CardTitle>
             </CardHeader>
             <CardContent className="px-0 pb-0">
               <p className="text-xs text-muted-foreground mb-2">
-                {selectedReport.business?.address},{" "}
-                {selectedReport.business?.city}
+                {selectedBusiness.address}, {selectedBusiness.city}
               </p>
               <Badge variant="outline">
-                {selectedReport.tip_practice.replace("_", " ").toUpperCase()}
+                {selectedBusiness.computed_tip_practice
+                  ?.replace("_", " ")
+                  .toUpperCase() ?? "Unknown"}
               </Badge>
-              {selectedReport.details && (
-                <p className="mt-2 text-xs text-muted-foreground">
-                  {selectedReport.details}
-                </p>
-              )}
+              <div className="mt-2 text-xs text-muted-foreground">
+                <p>Reports: {selectedBusiness.report_count}</p>
+                {(selectedBusiness.computed_service_charge_percentage ?? 0) >
+                  0 && (
+                  <p>
+                    Service Charge:{" "}
+                    {selectedBusiness.computed_service_charge_percentage}%
+                  </p>
+                )}
+              </div>
             </CardContent>
           </Card>
         </Popup>

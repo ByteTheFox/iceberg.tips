@@ -10,17 +10,15 @@ import { EmptySearch } from "./ui/empty-search";
 import { useGeolocation } from "@/hooks/use-geolocation";
 
 export default function BusinessUI({
-  reports,
+  businesses,
 }: {
-  reports:
-    | (Tables<"reports"> & { business: Tables<"businesses"> | null })[]
-    | null;
+  businesses: Tables<"business_stats">[] | null;
 }) {
   const [searchTerm, setSearchTerm] = useState("");
   const { latitude, longitude } = useGeolocation();
 
-  const filteredReports = reports.filter((report) =>
-    report.business?.name.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredBusinesses = businesses?.filter((business) =>
+    business.name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -40,10 +38,10 @@ export default function BusinessUI({
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          {filteredReports.length === 0 && searchTerm ? (
+          {filteredBusinesses?.length === 0 && searchTerm ? (
             <EmptySearch searchTerm={searchTerm} />
           ) : (
-            <BusinessList reports={filteredReports} />
+            <BusinessList businesses={filteredBusinesses || null} />
           )}
         </div>
       </div>
@@ -51,7 +49,7 @@ export default function BusinessUI({
       {/* Map */}
       <div className="flex-1">
         <BusinessMap
-          reports={filteredReports}
+          businesses={filteredBusinesses || null}
           center={
             latitude && longitude
               ? { lat: latitude, lng: longitude }
