@@ -12,6 +12,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -43,6 +44,7 @@ import crypto from "crypto";
 import Link from "next/link";
 import { tipPracticeOptions } from "@/lib/constants";
 import { useDebounce } from "@/hooks/use-debounce";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const formSchema = z.object({
   country: z.enum(["US", "CA"], {
@@ -63,6 +65,7 @@ const formSchema = z.object({
   tipPractice: z.string({
     required_error: "Please select a tip practice",
   }),
+  tipsGoToStaff: z.boolean().optional().nullable(),
   suggestedTips: z.array(z.number()).optional().nullable(),
   serviceChargePercentage: z.number().optional().nullable(),
   details: z.string().optional().nullable(),
@@ -94,6 +97,7 @@ export default function ReportPage() {
       serviceChargePercentage: null,
       latitude: undefined,
       longitude: undefined,
+      tipsGoToStaff: null,
     },
   });
 
@@ -187,6 +191,7 @@ export default function ReportPage() {
         business_id: business![0].id,
         user_id: user?.id || null,
         tip_practice: values.tipPractice,
+        tips_go_to_staff: values.tipsGoToStaff,
         details: values.details || null,
       };
 
@@ -501,6 +506,34 @@ export default function ReportPage() {
                 </FormItem>
               )}
             />
+
+            {(form.watch("tipPractice") === "tip_requested" ||
+              form.watch("tipPractice") === "service_charge") && (
+              <FormField
+                control={form.control}
+                name="tipsGoToStaff"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value || false}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>
+                        Tips go to front-of-house staff (Optional)
+                      </FormLabel>
+                      <FormDescription>
+                        Check this box if you can confirm that the tips/service
+                        charges go to servers, bartenders, or other
+                        front-of-house staff.
+                      </FormDescription>
+                    </div>
+                  </FormItem>
+                )}
+              />
+            )}
 
             {form.watch("tipPractice") === "tip_requested" && (
               <div className="space-y-4">
