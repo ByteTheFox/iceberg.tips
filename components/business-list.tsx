@@ -4,6 +4,7 @@ import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tables } from "@/lib/types";
 import { tipPracticeOptions } from "@/lib/constants";
+import Link from "next/link";
 
 interface BusinessListProps {
   businesses: Tables<"business_stats">[] | null;
@@ -46,7 +47,14 @@ export function BusinessList({ businesses }: BusinessListProps) {
         <div key={business.id} className="hover:bg-muted/50">
           <CardHeader>
             <div className="flex justify-between items-center">
-              <CardTitle className="text-lg">{business.name}</CardTitle>
+              <CardTitle className="text-lg">
+                <Link
+                  href={`/business/${business.id}`}
+                  className="hover:underline cursor-pointer"
+                >
+                  {business.name}
+                </Link>
+              </CardTitle>
               <Badge
                 className={getTipsGoToStaffClassName(
                   business.computed_tips_go_to_staff
@@ -75,7 +83,7 @@ export function BusinessList({ businesses }: BusinessListProps) {
                 </p>
               )}
             {(business.computed_service_charge_percentage ?? 0) > 0 && (
-              <p className="mt-2 text-sm">
+              <p className="mt-2 text-muted-foreground text-sm">
                 Service Charge: {business.computed_service_charge_percentage}%
               </p>
             )}

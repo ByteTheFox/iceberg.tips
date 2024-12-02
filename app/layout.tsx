@@ -1,37 +1,27 @@
+import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
-import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
-import { Toaster } from "sonner";
-import { QueryParamCleaner } from "@/components/providers/query-param-cleaner";
-import { createClient } from "@/lib/supabase/server";
+import { HeaderWrapper } from "@/components/header-wrapper";
 
 const inter = Inter({ subsets: ["latin"] });
 
-export const viewport: Viewport = {
-  themeColor: "white",
-  width: "device-width",
-  initialScale: 1,
-};
-
-export const metadata: Metadata = {
+export const metadata = {
   title: "Iceberg",
-  description: "Find and report businesses tip practices",
-  metadataBase: new URL("https://iceberg.tips"),
+  description: "Know where your tips go",
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
-
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en">
       <body className={inter.className}>
-        <QueryParamCleaner />
-        {children}
-
+        <main className="w-full min-h-screen bg-background flex flex-col">
+          <HeaderWrapper />
+          {children}
+        </main>
         <Toaster />
       </body>
     </html>

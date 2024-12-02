@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import Link from "next/link";
 
 interface BusinessMapProps {
   businesses: Tables<"business_stats">[] | null;
@@ -142,7 +143,12 @@ export function BusinessMap({ businesses, center }: BusinessMapProps) {
           <Card className="border-0 shadow-none">
             <CardHeader className="px-0 pt-0">
               <CardTitle className="text-base">
-                {selectedBusiness.name}
+                <Link
+                  href={`/business/${selectedBusiness.id}`}
+                  className="hover:underline cursor-pointer"
+                >
+                  {selectedBusiness.name}
+                </Link>
               </CardTitle>
             </CardHeader>
             <CardContent className="px-0 pb-0">

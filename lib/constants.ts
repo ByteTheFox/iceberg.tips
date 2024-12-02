@@ -2,7 +2,7 @@ export const tipPracticeOptions = [
   {
     label: "No Tipping",
     value: "no_tipping",
-    className: "bg-blue-100 text-blue-800",
+    className: "bg-gray-100 text-gray-800",
   },
   {
     label: "Tip Requested",
@@ -12,6 +12,6 @@ export const tipPracticeOptions = [
   {
     label: "Mandatory Service Charge",
     value: "service_charge",
-    className: "bg-yellow-100 text-yellow-800",
+    className: "bg-red-100 text-red-800",
   },
 ];
