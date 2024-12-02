@@ -51,7 +51,7 @@ const formSchema = z.object({
     .min(2, "Business name must be at least 2 characters"),
   address: z.string().min(5, "Address must be at least 5 characters"),
   city: z.string().min(2, "City must be at least 2 characters"),
-  state: z.string().length(2, "Please use 2-letter state/province code"),
+  state: z.string().min(2, "Province/State must be at least 2 characters"),
   zipCode: z
     .string()
     .regex(
@@ -61,9 +61,9 @@ const formSchema = z.object({
   tipPractice: z.string({
     required_error: "Please select a tip practice",
   }),
-  suggestedTips: z.array(z.number()).optional(),
-  serviceChargePercentage: z.number().nullable(),
-  details: z.string().optional(),
+  suggestedTips: z.array(z.number()).optional().nullable(),
+  serviceChargePercentage: z.number().optional().nullable(),
+  details: z.string().optional().nullable(),
   latitude: z.number().optional(),
   longitude: z.number().optional(),
 });
@@ -90,6 +90,8 @@ export default function ReportPage() {
       details: "",
       suggestedTips: [],
       serviceChargePercentage: null,
+      latitude: undefined,
+      longitude: undefined,
     },
   });
 
@@ -123,14 +125,28 @@ export default function ReportPage() {
   }, [form.watch("tipPractice")]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    console.log("Form submitted with values:", values);
     try {
       setIsLoading(true);
+
+      // Validate required fields explicitly
+      if (
+        !values.businessName ||
+        !values.address ||
+        !values.city ||
+        !values.state ||
+        !values.zipCode ||
+        !values.tipPractice
+      ) {
+        throw new Error("Please fill in all required fields");
+      }
 
       const {
         data: { user },
       } = await supabase.auth.getUser();
 
-      // Create a hash of the business details for deduplication
+      // Log each step for debugging
+      console.log("Creating business hash...");
       const businessString = `${values.businessName
         .toLowerCase()
         .trim()}|${values.address.toLowerCase().trim()}|${values.city
@@ -141,7 +157,7 @@ export default function ReportPage() {
         .update(businessString)
         .digest("hex");
 
-      // First, upsert the business
+      console.log("Upserting business...");
       const { data: business, error: businessError } = await supabase
         .from("businesses")
         .upsert(
@@ -153,48 +169,53 @@ export default function ReportPage() {
             state: values.state,
             zip_code: values.zipCode,
             country: values.country,
-            latitude: values.latitude,
-            longitude: values.longitude,
+            latitude: values.latitude || null,
+            longitude: values.longitude || null,
           },
           { onConflict: "hash" }
         )
         .select();
 
-      if (businessError) throw businessError;
+      if (businessError) {
+        console.error("Business upsert error:", businessError);
+        throw businessError;
+      }
 
-      // Then create the report
-      const reportData = {
+      console.log("Creating report data...");
+      const reportData: any = {
         business_id: business![0].id,
         user_id: user?.id || null,
         tip_practice: values.tipPractice,
         details: values.details || null,
       };
 
-      // Add optional fields based on tip practice
       if (values.tipPractice === "tip_requested" && tipPercentagesModified) {
-        Object.assign(reportData, { suggested_tips: values.suggestedTips });
+        reportData.suggested_tips = tipPercentages;
       }
 
       if (
         values.tipPractice === "service_charge" &&
-        values.serviceChargePercentage !== null
+        values.serviceChargePercentage
       ) {
-        Object.assign(reportData, {
-          service_charge_percentage: values.serviceChargePercentage,
-        });
+        reportData.service_charge_percentage = values.serviceChargePercentage;
       }
 
+      console.log("Inserting report...", reportData);
       const { error: reportError } = await supabase
         .from("reports")
         .insert(reportData);
 
-      if (reportError) throw reportError;
+      if (reportError) {
+        console.error("Report insert error:", reportError);
+        throw reportError;
+      }
 
       toast({
-        title: "Report submitted",
+        title: "Success",
         description: "Thank you for contributing to tip transparency!",
       });
 
+      // Reset form and state
       form.reset();
       setSelectedBusiness(null);
       setTipPercentages([]);
@@ -203,7 +224,10 @@ export default function ReportPage() {
       console.error("Error submitting report:", error);
       toast({
         title: "Error",
-        description: "Failed to submit report. Please try again.",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to submit report. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -236,14 +260,19 @@ export default function ReportPage() {
 
   const isFormValid = () => {
     const values = form.getValues();
+
     const hasBusinessInfo =
-      selectedBusiness &&
       values.businessName &&
       values.address &&
       values.city &&
       values.state &&
       values.zipCode;
-    return values.country && hasBusinessInfo && values.tipPractice;
+
+    const isValid = Boolean(
+      values.country && hasBusinessInfo && values.tipPractice
+    );
+
+    return isValid;
   };
 
   const addTipPercentage = () => {
@@ -278,6 +307,16 @@ export default function ReportPage() {
       </Link>
 
       <h1 className="text-2xl font-bold mb-12">Report Business Tip Practice</h1>
+
+      {!form.formState.isValid && (
+        <div className="bg-red-100 p-4 rounded-lg mb-6">
+          <p className="text-red-500">Please fill in all required fields.</p>
+          <pre className="text-xs overflow-auto">
+            {JSON.stringify(form.formState.errors, null, 2)}
+          </pre>
+        </div>
+      )}
+
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <FormField
@@ -510,6 +549,7 @@ export default function ReportPage() {
                       disabled={!form.watch("country")}
                       placeholder="Share more details about the tipping practice..."
                       {...field}
+                      value={field.value || ""}
                     />
                   </FormControl>
                   <FormMessage />
