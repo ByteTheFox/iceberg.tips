@@ -30,15 +30,9 @@ import {
   Command,
   CommandEmpty,
   CommandGroup,
-  CommandInput,
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import BusinessConfirmationCard from "@/components/business-confirmation-card";
 import crypto from "crypto";
 import Link from "next/link";
@@ -79,7 +73,7 @@ export default function ReportPage() {
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
 
-  const { searchAddress, searchResults, isSearching, clearResults } =
+  const { searchBusiness, searchResults, isSearching, clearResults } =
     useMapboxSearch();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -109,7 +103,7 @@ export default function ReportPage() {
 
   useEffect(() => {
     if (debouncedSearchTerm.length > 2 && form.watch("country")) {
-      searchAddress(debouncedSearchTerm, form.watch("country"));
+      searchBusiness(debouncedSearchTerm, form.watch("country"));
     } else {
       clearResults();
     }
@@ -637,4 +631,7 @@ export default function ReportPage() {
       )}
     </div>
   );
+}
+function searchBusiness(debouncedSearchTerm: string, arg1: string) {
+  throw new Error("Function not implemented.");
 }

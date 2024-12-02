@@ -1,4 +1,5 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
+import { createClient } from "@/lib/supabase/client";
 
 type SearchResult = {
   type: "Feature";
@@ -57,20 +58,28 @@ type SearchResult = {
   };
 };
 
-// Helper function to generate a random session token
-const generateSessionToken = () => {
-  return crypto.randomUUID();
-};
-
 export function useMapboxSearch() {
+  const supabase = createClient();
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [sessionToken, setSessionToken] = useState(generateSessionToken());
+  const [sessionToken, setSessionToken] = useState<string>(crypto.randomUUID());
+
+  // Get the user ID when the component mounts
+  useEffect(() => {
+    const getUser = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (user?.id) {
+        setSessionToken(user.id);
+      }
+    };
+
+    getUser();
+  }, []);
 
   const clearResults = useCallback(() => {
     setSearchResults([]);
-    // Generate a new session token when results are cleared
-    setSessionToken(generateSessionToken());
   }, []);
 
   const getCanadianRegion = async (lat: number, lng: number) => {
@@ -91,25 +100,66 @@ export function useMapboxSearch() {
     }
   };
 
-  const searchAddress = async (query: string, country?: "US" | "CA") => {
+  const searchBusiness = async (query: string, country?: "US" | "CA") => {
     if (!query) return;
 
     setIsSearching(true);
     try {
       const countryCode = country ? `&country=${country}` : "";
+      const exclusions = [
+        "advertising_agency",
+        "airport",
+        "airport_gate",
+        "airport_terminal",
+        "animal_shelter",
+        "assisted_living_facility",
+        "alternative_healthcare",
+        "health_services",
+        "atm",
+        "baggage_claim",
+        "bank",
+        "beach",
+        "bus_station",
+        "bus_stop",
+        "bridge",
+        "campground",
+        "car_rental",
+        "car_dealership",
+        "casino",
+        "cemetery",
+        "church",
+        "city_hall",
+        "transportation",
+        "park",
+        "point_of_interest",
+        "consulting",
+        "office",
+        "education",
+      ];
+      const exclusionsString = `&poi_category_exclusions=${exclusions.join(
+        ","
+      )}`;
       const response = await fetch(
         `https://api.mapbox.com/search/searchbox/v1/suggest?q=${encodeURIComponent(
           query
         )}&access_token=${
           process.env.NEXT_PUBLIC_MAPBOX_TOKEN
-        }&types=poi${countryCode}&limit=10&session_token=${sessionToken}`
+        }&types=poi${countryCode}${exclusionsString}&limit=10&session_token=${sessionToken}`
       );
 
       const data = await response.json();
 
+      console.log(data);
+
       if (data.suggestions?.length) {
-        const detailsPromises = data.suggestions.map(
-          async (suggestion: any) => {
+        const detailsPromises = data.suggestions
+          .filter(
+            (suggestion: any) =>
+              suggestion.feature_type === "poi" &&
+              suggestion.poi_category_ids.length > 0 &&
+              suggestion.context.place
+          )
+          .map(async (suggestion: any) => {
             const detailsResponse = await fetch(
               `https://api.mapbox.com/search/searchbox/v1/retrieve/${suggestion.mapbox_id}?access_token=${process.env.NEXT_PUBLIC_MAPBOX_TOKEN}&session_token=${sessionToken}`
             );
@@ -137,8 +187,7 @@ export function useMapboxSearch() {
             }
 
             return feature;
-          }
-        );
+          });
 
         const detailsResults = await Promise.all(detailsPromises);
         setSearchResults(detailsResults);
@@ -153,5 +202,5 @@ export function useMapboxSearch() {
     }
   };
 
-  return { searchAddress, searchResults, isSearching, clearResults };
+  return { searchBusiness, searchResults, isSearching, clearResults };
 }
