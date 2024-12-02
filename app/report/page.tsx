@@ -314,15 +314,6 @@ export default function ReportPage() {
 
       <h1 className="text-2xl font-bold mb-12">Report Business Tip Practice</h1>
 
-      {!form.formState.isValid && (
-        <div className="bg-red-100 p-4 rounded-lg mb-6">
-          <p className="text-red-500">Please fill in all required fields.</p>
-          <pre className="text-xs overflow-auto">
-            {JSON.stringify(form.formState.errors, null, 2)}
-          </pre>
-        </div>
-      )}
-
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <FormField
