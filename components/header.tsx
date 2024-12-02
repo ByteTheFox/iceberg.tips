@@ -1,14 +1,20 @@
 import { Button } from "@/components/ui/button";
 import { PlusCircle } from "lucide-react";
 import Link from "next/link";
+import { LocationSearch } from "@/components/LocationSearch";
 
 export function Header() {
   return (
-    <div className="h-16 border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 sticky top-0 z-50">
-      <div className="max-w-full px-4 mx-auto h-full flex items-center justify-between">
-        <Link href="/" className="font-bold text-xl">
-          Iceberg
-        </Link>
+    <header className="sticky top-0 z-50 w-full border-b border-gray-200 bg-white">
+      <div className="w-full max-w-screen-7xl mx-auto flex h-16 items-center justify-between px-4">
+        <div className="flex items-center gap-4">
+          <Link href="/" className="flex items-center font-bold text-xl">
+            Iceberg
+          </Link>
+        </div>
+        <div className="flex-1 max-w-md">
+          <LocationSearch />
+        </div>
         <Link href="/report">
           <Button>
             <PlusCircle className="mr-2 h-4 w-4" />
@@ -16,6 +22,6 @@ export function Header() {
           </Button>
         </Link>
       </div>
-    </div>
+    </header>
   );
 }
