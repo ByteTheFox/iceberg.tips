@@ -137,24 +137,86 @@ export function BusinessMap({ businesses, center }: BusinessMapProps) {
           onClose={() => setSelectedBusiness(null)}
           closeButton={true}
           closeOnClick={false}
-          className="w-72"
           offset={25}
         >
           <Card className="border-0 shadow-none">
             <CardHeader className="px-0 pt-0">
-              <CardTitle className="text-sm">{selectedBusiness.name}</CardTitle>
+              <CardTitle className="text-base">
+                {selectedBusiness.name}
+              </CardTitle>
             </CardHeader>
             <CardContent className="px-0 pb-0">
-              <p className="text-xs text-muted-foreground mb-2">
+              <p className="text-sm text-muted-foreground mb-2">
                 {selectedBusiness.address}, {selectedBusiness.city}
               </p>
-              <Badge variant="outline">
-                {selectedBusiness.computed_tip_practice
-                  ?.replace("_", " ")
-                  .toUpperCase() ?? "Unknown"}
-              </Badge>
+              <div className="flex flex-wrap gap-2">
+                <Badge
+                  variant="outline"
+                  className={`
+                    ${
+                      selectedBusiness.computed_tips_go_to_staff === true
+                        ? "bg-green-100 text-green-800 border-green-200"
+                        : ""
+                    }
+                    ${
+                      selectedBusiness.computed_tips_go_to_staff === false
+                        ? "bg-red-100 text-red-800 border-red-200"
+                        : ""
+                    }
+                    ${
+                      selectedBusiness.computed_tips_go_to_staff === null
+                        ? "bg-gray-100 text-gray-800 border-gray-200"
+                        : ""
+                    }
+                  `}
+                >
+                  {selectedBusiness.computed_tips_go_to_staff === null
+                    ? "UNKNOWN"
+                    : selectedBusiness.computed_tips_go_to_staff
+                    ? "TIPS GO TO STAFF"
+                    : "TIPS DON'T GO TO STAFF"}
+                </Badge>
+
+                <Badge
+                  variant="outline"
+                  className={`
+                      ${
+                        selectedBusiness.computed_tip_practice ===
+                        "tip_requested"
+                          ? "bg-green-100 text-green-800 border-green-200"
+                          : ""
+                      }
+                      ${
+                        selectedBusiness.computed_tip_practice ===
+                        "mandatory_service_charge"
+                          ? "bg-red-100 text-red-800 border-red-200"
+                          : ""
+                      }
+                      ${
+                        selectedBusiness.computed_tip_practice === null
+                          ? "bg-gray-100 text-gray-800 border-gray-200"
+                          : ""
+                      }
+                    `}
+                >
+                  {selectedBusiness.computed_tip_practice
+                    ? selectedBusiness.computed_tip_practice
+                        .replace("_", " ")
+                        .toUpperCase()
+                    : "UNKNOWN"}
+                </Badge>
+              </div>
               <div className="mt-2 text-xs text-muted-foreground">
-                <p>Reports: {selectedBusiness.report_count}</p>
+                {selectedBusiness.computed_suggested_tips &&
+                  selectedBusiness.computed_suggested_tips?.length > 0 && (
+                    <p>
+                      Suggested Tips:{" "}
+                      {selectedBusiness.computed_suggested_tips
+                        .map((tip) => `${tip}%`)
+                        .join(", ")
+                        .replace(/,([^,]*)$/, ", and$1")}
+                    </p>
+                  )}
                 {(selectedBusiness.computed_service_charge_percentage ?? 0) >
                   0 && (
                   <p>
@@ -162,6 +224,7 @@ export function BusinessMap({ businesses, center }: BusinessMapProps) {
                     {selectedBusiness.computed_service_charge_percentage}%
                   </p>
                 )}
+                <p>Reports: {selectedBusiness.report_count}</p>
               </div>
             </CardContent>
           </Card>

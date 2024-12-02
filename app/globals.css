@@ -64,3 +64,11 @@
     @apply bg-background text-foreground;
   }
 }
+
+.mapboxgl-popup-close-button {
+  @apply px-3 py-1.5 text-base outline-none;
+}
+
+.mapboxgl-popup-content {
+  @apply rounded-lg !important;
+}

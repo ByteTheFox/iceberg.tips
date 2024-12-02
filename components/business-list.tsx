@@ -89,7 +89,7 @@ export function BusinessList({ businesses }: BusinessListProps) {
               </Badge>
               <Badge variant="secondary">
                 {business.report_count}{" "}
-                {business.report_count === 1 ? "Report" : "Reports"}
+                {business.report_count === 1 ? "report" : "reports"}
               </Badge>
             </div>
           </CardContent>
