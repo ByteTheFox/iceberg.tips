@@ -361,8 +361,36 @@ export default function ReportPage() {
                         onChange={(e) => {
                           field.onChange(e);
                           setSearchTerm(e.target.value);
-                          if (e.target.value.length > 2) {
+
+                          // Reset form fields if input is cleared or too short
+                          if (e.target.value.length <= 2) {
+                            setOpen(false);
+                            setSelectedBusiness(null);
+                            form.setValue("address", "");
+                            form.setValue("city", "");
+                            form.setValue("state", "");
+                            form.setValue("zipCode", "");
+                            form.setValue("latitude", undefined);
+                            form.setValue("longitude", undefined);
+                          } else {
                             setOpen(true);
+                          }
+                        }}
+                        onKeyDown={(e) => {
+                          if (searchResults.length > 0) {
+                            if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+                              e.preventDefault();
+                              setOpen(true);
+                              const commandInput = document.querySelector(
+                                "[cmdk-input]"
+                              ) as HTMLElement;
+                              commandInput?.focus();
+                            }
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              handleSelect(searchResults[0]);
+                              setOpen(false);
+                            }
                           }
                         }}
                       />
@@ -372,6 +400,23 @@ export default function ReportPage() {
                             loop={false}
                             shouldFilter={false}
                             className="border-none"
+                            onKeyDown={(e) => {
+                              // Handle Enter key on highlighted item
+                              if (e.key === "Enter") {
+                                const highlightedItem = document.querySelector(
+                                  '[data-highlighted="true"]'
+                                );
+                                if (highlightedItem) {
+                                  const index = parseInt(
+                                    highlightedItem.getAttribute(
+                                      "data-index"
+                                    ) || "0"
+                                  );
+                                  handleSelect(searchResults[index]);
+                                  setOpen(false);
+                                }
+                              }
+                            }}
                           >
                             <CommandList>
                               <CommandEmpty>
@@ -389,6 +434,7 @@ export default function ReportPage() {
                                       setOpen(false);
                                     }}
                                     className="cursor-pointer hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                                    data-index={index}
                                   >
                                     <div className="flex flex-col py-2 w-full">
                                       <span className="font-medium">
@@ -412,8 +458,19 @@ export default function ReportPage() {
               )}
             />
 
-            {selectedBusiness && (
+            {selectedBusiness ? (
               <BusinessConfirmationCard business={selectedBusiness} />
+            ) : (
+              searchTerm.length > 2 &&
+              !isSearching &&
+              searchResults.length === 0 && (
+                <div className="rounded-lg border bg-card text-card-foreground p-4">
+                  <p className="text-sm text-muted-foreground">
+                    No business found. Please try a different search term or
+                    ensure the business name is correct.
+                  </p>
+                </div>
+              )
             )}
 
             <FormField
