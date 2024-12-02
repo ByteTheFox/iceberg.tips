@@ -44,8 +44,12 @@ export default function SignInForm() {
   };
 
   return (
-    <div className="max-w-md mx-auto mt-16 p-6">
+    <div className="w-full max-w-lg mx-auto mt-16 p-6">
       <h1 className="text-2xl font-bold mb-6">Sign In</h1>
+      <p className="text-base text-muted-foreground mb-6">
+        Though all reports are anonymous, we ask you to sign in with your email
+        to avoid abuse.
+      </p>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>
           <label htmlFor="email" className="block text-sm font-medium mb-1">
@@ -63,6 +67,7 @@ export default function SignInForm() {
             id="email"
             className="w-full p-2 border rounded-md"
             disabled={isLoading}
+            placeholder="your@email.com"
           />
           {errors.email && (
             <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>
