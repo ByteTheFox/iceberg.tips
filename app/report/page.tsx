@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -39,6 +39,7 @@ import Link from "next/link";
 import { tipPracticeOptions } from "@/lib/constants";
 import { useDebounce } from "@/hooks/use-debounce";
 import { Checkbox } from "@/components/ui/checkbox";
+import type { SearchResult } from "@/hooks/use-mapbox-search";
 
 const formSchema = z.object({
   country: z.enum(["US", "CA"], {
@@ -100,28 +101,45 @@ export default function ReportPage() {
   const [tipPercentagesModified, setTipPercentagesModified] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
+  const [currentCountry, setCurrentCountry] = useState<"US" | "CA" | undefined>(
+    undefined
+  );
+  const [currentTipPractice, setCurrentTipPractice] = useState<
+    string | undefined
+  >(undefined);
 
   useEffect(() => {
-    if (debouncedSearchTerm.length > 2 && form.watch("country")) {
-      searchBusiness(debouncedSearchTerm, form.watch("country"));
+    const subscription = form.watch((value) => {
+      if (value.country !== currentCountry) {
+        setCurrentCountry(value.country);
+      }
+      if (value.tipPractice !== currentTipPractice) {
+        setCurrentTipPractice(value.tipPractice);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [form]);
+
+  useEffect(() => {
+    if (currentTipPractice === "tip_requested") {
+      setTipPercentages([10, 15, 20]);
+      setTipPercentagesModified(false);
+    } else {
+      setTipPercentages([]);
+      setTipPercentagesModified(false);
+    }
+  }, [currentTipPractice]);
+
+  useEffect(() => {
+    if (debouncedSearchTerm.length > 2 && currentCountry) {
+      searchBusiness(debouncedSearchTerm, currentCountry);
+      setOpen(true);
     } else {
       clearResults();
+      setOpen(false);
     }
-  }, [debouncedSearchTerm, form.watch("country")]);
-
-  useEffect(() => {
-    const tipPractice = form.watch("tipPractice");
-
-    // Reset UI state
-    setTipPercentages([]);
-    setTipPercentagesModified(false);
-
-    // Set default percentages in UI only if tip requested
-    if (tipPractice === "tip_requested") {
-      const defaultPercentages = [10, 15, 20];
-      setTipPercentages(defaultPercentages);
-    }
-  }, [form.watch("tipPractice")]);
+  }, [debouncedSearchTerm, currentCountry, searchBusiness, clearResults]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     console.log("Form submitted with values:", values);
@@ -335,278 +353,275 @@ export default function ReportPage() {
             )}
           />
 
-          <div className="space-y-6">
-            <FormField
-              control={form.control}
-              name="businessName"
-              render={({ field }) => (
-                <FormItem className="flex flex-col relative">
-                  <FormLabel>Business Name</FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <Input
-                        disabled={!form.watch("country")}
-                        placeholder="Enter business name"
-                        {...field}
-                        onChange={(e) => {
-                          field.onChange(e);
-                          setSearchTerm(e.target.value);
+          <FormField
+            control={form.control}
+            name="businessName"
+            render={({ field }) => (
+              <FormItem className="flex flex-col relative">
+                <FormLabel>Business Name</FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <Input
+                      disabled={!currentCountry}
+                      placeholder={
+                        currentCountry
+                          ? "Enter business name"
+                          : "Please select a country first"
+                      }
+                      {...field}
+                      onChange={(e) => {
+                        field.onChange(e);
+                        setSearchTerm(e.target.value);
 
-                          // Reset form fields if input is cleared or too short
-                          if (e.target.value.length <= 2) {
-                            setOpen(false);
-                            setSelectedBusiness(null);
-                            form.setValue("address", "");
-                            form.setValue("city", "");
-                            form.setValue("state", "");
-                            form.setValue("zipCode", "");
-                            form.setValue("latitude", undefined);
-                            form.setValue("longitude", undefined);
-                          } else {
+                        // Only reset fields if input is cleared
+                        if (!e.target.value) {
+                          setOpen(false);
+                          setSelectedBusiness(null);
+                          form.setValue("address", "");
+                          form.setValue("city", "");
+                          form.setValue("state", "");
+                          form.setValue("zipCode", "");
+                          form.setValue("latitude", undefined);
+                          form.setValue("longitude", undefined);
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (searchResults.length > 0) {
+                          if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+                            e.preventDefault();
                             setOpen(true);
+                            const commandInput = document.querySelector(
+                              "[cmdk-input]"
+                            ) as HTMLElement;
+                            commandInput?.focus();
                           }
-                        }}
-                        onKeyDown={(e) => {
-                          if (searchResults.length > 0) {
-                            if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-                              e.preventDefault();
-                              setOpen(true);
-                              const commandInput = document.querySelector(
-                                "[cmdk-input]"
-                              ) as HTMLElement;
-                              commandInput?.focus();
-                            }
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            handleSelect(searchResults[0]);
+                            setOpen(false);
+                          }
+                        }
+                      }}
+                    />
+                    {open && searchResults.length > 0 && (
+                      <div className="absolute w-full z-50 top-[calc(100%+1px)] rounded-md border bg-popover shadow-md overflow-hidden">
+                        <Command
+                          loop={false}
+                          shouldFilter={false}
+                          className="border-none"
+                          onKeyDown={(e) => {
+                            // Handle Enter key on highlighted item
                             if (e.key === "Enter") {
-                              e.preventDefault();
-                              handleSelect(searchResults[0]);
-                              setOpen(false);
-                            }
-                          }
-                        }}
-                      />
-                      {open && searchResults.length > 0 && (
-                        <div className="absolute w-full z-50 top-[calc(100%+1px)] rounded-md border bg-popover shadow-md overflow-hidden">
-                          <Command
-                            loop={false}
-                            shouldFilter={false}
-                            className="border-none"
-                            onKeyDown={(e) => {
-                              // Handle Enter key on highlighted item
-                              if (e.key === "Enter") {
-                                const highlightedItem = document.querySelector(
-                                  '[data-highlighted="true"]'
+                              const highlightedItem = document.querySelector(
+                                '[data-highlighted="true"]'
+                              );
+                              if (highlightedItem) {
+                                const index = parseInt(
+                                  highlightedItem.getAttribute("data-index") ||
+                                    "0"
                                 );
-                                if (highlightedItem) {
-                                  const index = parseInt(
-                                    highlightedItem.getAttribute(
-                                      "data-index"
-                                    ) || "0"
-                                  );
-                                  handleSelect(searchResults[index]);
-                                  setOpen(false);
-                                }
+                                handleSelect(searchResults[index]);
+                                setOpen(false);
                               }
-                            }}
-                          >
-                            <CommandList>
-                              <CommandEmpty>
-                                {isSearching
-                                  ? "Searching..."
-                                  : "No results found."}
-                              </CommandEmpty>
-                              <CommandGroup className="overflow-hidden">
-                                {searchResults.map((result, index) => (
-                                  <CommandItem
-                                    key={`${result.properties.mapbox_id}-${index}`}
-                                    value={`${result.properties.mapbox_id}-${index}`}
-                                    onSelect={() => {
-                                      handleSelect(result);
-                                      setOpen(false);
-                                    }}
-                                    className="cursor-pointer hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
-                                    data-index={index}
-                                  >
-                                    <div className="flex flex-col py-2 w-full">
-                                      <span className="font-medium">
-                                        {result.properties.name}
-                                      </span>
-                                      <span className="text-sm text-muted-foreground">
-                                        {result.properties.full_address}
-                                      </span>
-                                    </div>
-                                  </CommandItem>
-                                ))}
-                              </CommandGroup>
-                            </CommandList>
-                          </Command>
-                        </div>
-                      )}
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {selectedBusiness ? (
-              <BusinessConfirmationCard business={selectedBusiness} />
-            ) : (
-              searchTerm.length > 2 &&
-              !isSearching &&
-              searchResults.length === 0 && (
-                <div className="rounded-lg border bg-card text-card-foreground p-4">
-                  <p className="text-sm text-muted-foreground">
-                    No business found. Please try a different search term or
-                    ensure the business name is correct.
-                  </p>
-                </div>
-              )
+                            }
+                          }}
+                        >
+                          <CommandList>
+                            <CommandEmpty>
+                              {isSearching
+                                ? "Searching..."
+                                : "No results found."}
+                            </CommandEmpty>
+                            <CommandGroup className="overflow-hidden">
+                              {searchResults.map((result, index) => (
+                                <CommandItem
+                                  key={`${result.properties.mapbox_id}-${index}`}
+                                  value={`${result.properties.mapbox_id}-${index}`}
+                                  onSelect={() => {
+                                    handleSelect(result);
+                                    setOpen(false);
+                                  }}
+                                  className="cursor-pointer hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                                  data-index={index}
+                                >
+                                  <div className="flex flex-col py-2 w-full">
+                                    <span className="font-medium">
+                                      {result.properties.name}
+                                    </span>
+                                    <span className="text-sm text-muted-foreground">
+                                      {result.properties.full_address}
+                                    </span>
+                                  </div>
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </div>
+                    )}
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
             )}
+          />
 
+          {selectedBusiness ? (
+            <BusinessConfirmationCard business={selectedBusiness} />
+          ) : (
+            searchTerm.length > 2 &&
+            !isSearching &&
+            searchResults.length === 0 && (
+              <div className="rounded-lg border bg-card text-card-foreground p-4">
+                <p className="text-sm text-muted-foreground">
+                  No business found. Please try a different search term or
+                  ensure the business name is correct.
+                </p>
+              </div>
+            )
+          )}
+
+          <FormField
+            control={form.control}
+            name="tipPractice"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Tip Practice</FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                  disabled={!form.watch("country")}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select tip practice" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {tipPracticeOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {(form.watch("tipPractice") === "tip_requested" ||
+            form.watch("tipPractice") === "service_charge") && (
             <FormField
               control={form.control}
-              name="tipPractice"
+              name="tipsGoToStaff"
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Tip Practice</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                    disabled={!form.watch("country")}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select tip practice" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {tipPracticeOptions.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value || false}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel>
+                      Tips go to front-of-house staff (Optional)
+                    </FormLabel>
+                    <FormDescription>
+                      Check this box if you can confirm that the tips/service
+                      charges go to servers, bartenders, or other front-of-house
+                      staff.
+                    </FormDescription>
+                  </div>
                 </FormItem>
               )}
             />
+          )}
 
-            {(form.watch("tipPractice") === "tip_requested" ||
-              form.watch("tipPractice") === "service_charge") && (
-              <FormField
-                control={form.control}
-                name="tipsGoToStaff"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value || false}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel>
-                        Tips go to front-of-house staff (Optional)
-                      </FormLabel>
-                      <FormDescription>
-                        Check this box if you can confirm that the tips/service
-                        charges go to servers, bartenders, or other
-                        front-of-house staff.
-                      </FormDescription>
-                    </div>
-                  </FormItem>
-                )}
-              />
-            )}
-
-            {form.watch("tipPractice") === "tip_requested" && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <FormLabel>Suggested Tip Percentages (Optional)</FormLabel>
+          {form.watch("tipPractice") === "tip_requested" && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <FormLabel>Suggested Tip Percentages (Optional)</FormLabel>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addTipPercentage}
+                >
+                  Add Percentage
+                </Button>
+              </div>
+              {tipPercentages.map((percentage, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={percentage}
+                    onChange={(e) => updateTipPercentage(index, e.target.value)}
+                    className="w-24"
+                  />
+                  <span>%</span>
                   <Button
                     type="button"
-                    variant="outline"
+                    variant="ghost"
                     size="sm"
-                    onClick={addTipPercentage}
+                    onClick={() => removeTipPercentage(index)}
                   >
-                    Add Percentage
+                    Remove
                   </Button>
                 </div>
-                {tipPercentages.map((percentage, index) => (
-                  <div key={index} className="flex items-center gap-2">
-                    <Input
-                      type="number"
-                      min="0"
-                      max="100"
-                      value={percentage}
-                      onChange={(e) =>
-                        updateTipPercentage(index, e.target.value)
-                      }
-                      className="w-24"
-                    />
-                    <span>%</span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeTipPercentage(index)}
-                    >
-                      Remove
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
+              ))}
+            </div>
+          )}
 
-            {form.watch("tipPractice") === "service_charge" && (
-              <FormField
-                control={form.control}
-                name="serviceChargePercentage"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Service Charge Percentage (Optional)</FormLabel>
-                    <div className="flex items-center gap-2">
-                      <FormControl>
-                        <Input
-                          type="number"
-                          min="0"
-                          max="100"
-                          value={field.value ?? ""}
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            field.onChange(value ? Number(value) : null);
-                          }}
-                          className="w-24"
-                        />
-                      </FormControl>
-                      <span>%</span>
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-
+          {form.watch("tipPractice") === "service_charge" && (
             <FormField
               control={form.control}
-              name="details"
+              name="serviceChargePercentage"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Additional Details (Optional)</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      disabled={!form.watch("country")}
-                      placeholder="Share more details about the tipping practice..."
-                      {...field}
-                      value={field.value || ""}
-                    />
-                  </FormControl>
+                  <FormLabel>Service Charge Percentage (Optional)</FormLabel>
+                  <div className="flex items-center gap-2">
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={field.value ?? ""}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          field.onChange(value ? Number(value) : null);
+                        }}
+                        className="w-24"
+                      />
+                    </FormControl>
+                    <span>%</span>
+                  </div>
                   <FormMessage />
                 </FormItem>
               )}
             />
-          </div>
+          )}
+
+          <FormField
+            control={form.control}
+            name="details"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Additional Details (Optional)</FormLabel>
+                <FormControl>
+                  <Textarea
+                    disabled={!form.watch("country")}
+                    placeholder="Share more details about the tipping practice..."
+                    {...field}
+                    value={field.value || ""}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
           <Button
             type="submit"
@@ -631,7 +646,4 @@ export default function ReportPage() {
       )}
     </div>
   );
-}
-function searchBusiness(debouncedSearchTerm: string, arg1: string) {
-  throw new Error("Function not implemented.");
 }
