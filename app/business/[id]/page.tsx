@@ -7,31 +7,23 @@ import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { formatDistanceToNow } from "date-fns";
 
-interface Report {
-  id: string;
-  created_at: string;
-  tip_practice: string | null;
-  tips_go_to_staff: boolean | null;
-  suggested_tips: number[] | null;
-  service_charge_percentage: number | null;
-  notes: string | null;
-}
-
 export default async function BusinessPage({
   params,
   searchParams,
 }: {
-  params: { id: string };
-  searchParams: { page?: string };
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ page?: string }>;
 }) {
-  const page = Number(searchParams.page) || 1;
+  const sp = await searchParams;
+  const { id } = await params;
+  const page = Number(sp?.page) || 1;
   const pageSize = 10;
   const supabase = await createClient();
 
   const { data: business } = await supabase
     .from("business_stats")
     .select("*")
-    .eq("id", params.id)
+    .eq("id", id)
     .single();
 
   if (!business) {
@@ -41,7 +33,7 @@ export default async function BusinessPage({
   const { data: reports, count } = await supabase
     .from("reports")
     .select("*", { count: "exact" })
-    .eq("business_id", params.id)
+    .eq("business_id", id)
     .order("created_at", { ascending: false })
     .range((page - 1) * pageSize, page * pageSize - 1);
 
@@ -223,7 +215,7 @@ export default async function BusinessPage({
               (pageNum) => (
                 <Link
                   key={pageNum}
-                  href={`/business/${params.id}?page=${pageNum}`}
+                  href={`/business/${id}?page=${pageNum}`}
                   className={`px-3 py-1 rounded ${
                     pageNum === page
                       ? "bg-primary text-primary-foreground"

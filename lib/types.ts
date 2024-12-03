@@ -271,7 +271,7 @@ export type SearchParams = {
 };
 
 export interface BusinessUIProps {
-  businesses: Business[] | null;
+  businesses: any[] | null;
   initialLat?: number;
   initialLng?: number;
 }
