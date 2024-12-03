@@ -64,7 +64,7 @@ export default async function BusinessPage({
   };
 
   return (
-    <div className="w-full max-w-7xl mx-auto py-8 space-y-4">
+    <div className="w-full max-w-7xl mx-auto px-4 py-8 space-y-4">
       <Link
         href="/"
         className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-2"
